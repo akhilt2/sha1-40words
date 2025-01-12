@@ -19,14 +19,14 @@ def _process_chunk(chunk, h0, h1, h2, h3, h4):
     """Process a chunk of data and return the new digest variables."""
     assert len(chunk) == 64
 
-    w = [0] * 80
+    w = [0] * 40
 
     # Break chunk into sixteen 4-byte big-endian words w[i]
     for i in range(16):
         w[i] = struct.unpack(b'>I', chunk[i * 4:i * 4 + 4])[0]
 
-    # Extend the sixteen 4-byte words into eighty 4-byte words
-    for i in range(16, 80):
+    # Extend the sixteen 4-byte words into forty 4-byte words
+    for i in range(16, 40):
         w[i] = _left_rotate(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1)
 
     # Initialize hash value for this chunk
@@ -36,18 +36,11 @@ def _process_chunk(chunk, h0, h1, h2, h3, h4):
     d = h3
     e = h4
 
-    for i in range(80):
+    for i in range(40):
         if 0 <= i <= 19:
-            # Use alternative 1 for f from FIPS PB 180-1 to avoid bitwise not
-            f = d ^ (b & (c ^ d))
-            k = 0x5A827999
-        elif 20 <= i <= 39:
-            f = b ^ c ^ d
-            k = 0x6ED9EBA1
-        elif 40 <= i <= 59:
             f = (b & c) | (b & d) | (c & d)
             k = 0x8F1BBCDC
-        elif 60 <= i <= 79:
+        else:
             f = b ^ c ^ d
             k = 0xCA62C1D6
 
@@ -158,46 +151,4 @@ def sha1(data):
 
 
 if __name__ == '__main__':
-    # Imports required for command line parsing. No need for these elsewhere
-    import argparse
-    import sys
-    import os
-
-    # Parse the incoming arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('input', nargs='*',
-                        help='input file or message to hash')
-    args = parser.parse_args()
-
-    data = None
-    if len(args.input) == 0:
-        # No argument given, assume message comes from standard input
-        try:
-            # sys.stdin is opened in text mode, which can change line endings,
-            # leading to incorrect results. Detach fixes this issue, but it's
-            # new in Python 3.1
-            data = sys.stdin.detach()
-
-        except AttributeError:
-            # Linux ans OSX both use \n line endings, so only windows is a
-            # problem.
-            if sys.platform == "win32":
-                import msvcrt
-
-                msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
-            data = sys.stdin
-
-        # Output to console
-        print('sha1-digest:', sha1(data))
-
-    else:
-        # Loop through arguments list
-        for argument in args.input:
-            if (os.path.isfile(argument)):
-                # An argument is given and it's a valid file. Read it
-                data = open(argument, 'rb')
-                
-                # Show the final digest
-                print('sha1-digest:', sha1(data))
-            else:
-                print("Error, could not find " + argument + " file." )
+    print(sha1("Lorem ipsum dolor sit amet, consectetur adipiscing elit.".encode('utf-8')))
